@@ -236,6 +236,22 @@ public class ServerConnector extends PacketHandler
             user.sendDimensionSwitch();
             
             user.setServerEntityId(login.getEntityId());
+
+            //This does fixes the entity id desync on forge servers
+            user.setClientEntityId(login.getEntityId());
+            Login modLogin;
+            if ( handshakeHandler != null && handshakeHandler.isServerForge() )
+            {
+                modLogin = new Login( login.getEntityId(), login.getGameMode(), login.getDimension(), login.getDifficulty(),
+                        (byte) user.getPendingConnection().getListener().getTabListSize(), login.getLevelType(), login.isReducedDebugInfo() );
+            }
+            else
+            {
+                modLogin = new Login( login.getEntityId(), login.getGameMode(), (byte) login.getDimension(), login.getDifficulty(),
+                        (byte) user.getPendingConnection().getListener().getTabListSize(), login.getLevelType(), login.isReducedDebugInfo() );
+            }
+            user.unsafe().sendPacket( modLogin );
+            //end fix
             user.unsafe().sendPacket(new Respawn(login.getDimension(), login.getDifficulty(), login.getGameMode(), login.getLevelType()));
             
             // Remove from old servers
@@ -260,7 +276,7 @@ public class ServerConnector extends PacketHandler
         
         user.setServer(server);
         ch.getHandle().pipeline().get(HandlerBoss.class).setHandler(new DownstreamBridge(bungee, user, server));
-        
+
         bungee.getPluginManager().callEvent(new ServerSwitchEvent(user));
         
         thisState = State.FINISHED;
